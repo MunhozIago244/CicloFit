@@ -104,8 +104,6 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-
-
 class WorkoutSuggestionPage extends StatelessWidget {
   final DateTime periodStartDate;
   final int periodLength;
@@ -118,25 +116,62 @@ class WorkoutSuggestionPage extends StatelessWidget {
     int daysSinceStart = today.difference(periodStartDate).inDays;
 
     String suggestion = _getWorkoutSuggestion(daysSinceStart, periodLength);
+    String cycleDay = (daysSinceStart >= 0) ? 'Dia do Ciclo: ${daysSinceStart % 28}' : 'Ciclo não definido.';
+    String phase = _getPhase(daysSinceStart, periodLength);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Sugestões de Treino'),
         backgroundColor: Color(0xFFD81B60),
       ),
-      body: Center(
-        child: Text(
-          suggestion,
-          style: TextStyle(fontSize: 24),
-          textAlign: TextAlign.center,
-        ),
+      body: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8), // Reduzindo o padding
+            decoration: BoxDecoration(
+              color: Color(0xFFD81B60),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      cycleDay,
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Text(
+                      phase,
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20),
+          Expanded(
+            child: Center(
+              child: Text(
+                suggestion,
+                style: TextStyle(fontSize: 24),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   String _getWorkoutSuggestion(int daysSinceStart, int periodLength) {
     if (daysSinceStart < 0) return "Período não definido ainda.";
-    int phase = (daysSinceStart % (28)); // Ciclo típico de 28 dias
+    int phase = (daysSinceStart % 28); // Ciclo típico de 28 dias
 
     if (phase < periodLength) {
       return "Atividades leves (yoga, caminhada).";
@@ -148,9 +183,22 @@ class WorkoutSuggestionPage extends StatelessWidget {
       return "Atividades moderadas e recuperação.";
     }
   }
+
+  String _getPhase(int daysSinceStart, int periodLength) {
+    if (daysSinceStart < 0) return "Ciclo não definido.";
+    int phaseDay = daysSinceStart % 28;
+
+    if (phaseDay < periodLength) {
+      return "Fase Menstrual";
+    } else if (phaseDay < 14) {
+      return "Fase Folicular";
+    } else if (phaseDay < 16) {
+      return "Fase Ovulatória";
+    } else {
+      return "Fase Lútea";
+    }
+  }
 }
-
-
 
 class HomePage extends StatefulWidget {
   @override
@@ -162,6 +210,7 @@ class _HomePageState extends State<HomePage> {
   DateTime _periodStartDate = DateTime.now();
   int _periodLength = 5;
   bool _periodSet = false;
+  bool _showCycleInfo = false;
 
   @override
   Widget build(BuildContext context) {
@@ -174,59 +223,108 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ElevatedButton(
-              onPressed: () {
-                _showSetPeriodDialog();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFD81B60),
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-              ),
-              child: Text('Definir Período Menstrual'),
-              
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  color: Color(0xFFD81B60),
+                  onPressed: () {
+                    setState(() {
+                      _showCycleInfo = !_showCycleInfo;
+                    });
+                  },
+                ),
+                SizedBox(width: 8),
+                if (_showCycleInfo && _periodSet)
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFD81B60),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Ciclo Menstrual: Início em ${_periodStartDate.day}/${_periodStartDate.month}',
+                          style: TextStyle(fontSize: 14, color: Colors.white),
+                        ),
+                        Text(
+                          'Duração: $_periodLength dias',
+                          style: TextStyle(fontSize: 14, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => WorkoutSuggestionPage(
-                    periodStartDate: _periodStartDate,
-                    periodLength: _periodLength,
-                  )),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFD81B60),
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-              ),
-              child: Text('Ver Sugestões de Treino'),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                SizedBox(
+                  width: 150,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _showSetPeriodDialog();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFD81B60),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Definir Período Menstrual',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 150,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => WorkoutSuggestionPage(
+                          periodStartDate: _periodStartDate,
+                          periodLength: _periodLength,
+                        )),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFD81B60),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Ver Sugestões de Treino',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-
             SizedBox(height: 20),
             TableCalendar(
               focusedDay: _selectedDate,
               firstDay: DateTime.now().subtract(Duration(days: 365)),
               lastDay: DateTime.now().add(Duration(days: 365)),
-              calendarStyle: CalendarStyle(
-                selectedDecoration: BoxDecoration(
-                  color: Color(0xFFD81B60),
-                  shape: BoxShape.rectangle,
-                ),
-                todayDecoration: BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
-                defaultDecoration: BoxDecoration(),
-                weekendDecoration: BoxDecoration(),
-                holidayDecoration: BoxDecoration(),
-              ),
+              calendarFormat: CalendarFormat.month,
+              selectedDayPredicate: (day) {
+                return isSameDay(_selectedDate, day);
+              },
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() {
                   _selectedDate = selectedDay;
                 });
-              },
-              eventLoader: (day) {
-                return _getPeriodDays(_periodStartDate, _periodLength).contains(day) ? [day] : [];
               },
             ),
           ],
@@ -240,7 +338,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) {
         DateTime startDate = DateTime.now();
-        int length = 5;
+        int length = _periodLength;  // Usar o valor atual de _periodLength como padrão
 
         return AlertDialog(
           title: Text('Defina seu período menstrual'),
@@ -262,7 +360,7 @@ class _HomePageState extends State<HomePage> {
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
                   if (value.isNotEmpty) {
-                    length = int.parse(value);
+                    length = int.parse(value);  // Atualiza o valor de length com a entrada do usuário
                   }
                 },
               ),
@@ -290,12 +388,6 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
-  }
-
-  List<DateTime> _getPeriodDays(DateTime start, int length) {
-    return List<DateTime>.generate(length, (index) {
-      return start.add(Duration(days: index));
-    });
   }
 }
 
@@ -365,7 +457,7 @@ class RegisterPage extends StatelessWidget {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                
+                // Lógica de registro aqui
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFFD81B60),
