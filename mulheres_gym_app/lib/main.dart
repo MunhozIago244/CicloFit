@@ -104,6 +104,54 @@ class LoginPage extends StatelessWidget {
   }
 }
 
+
+
+class WorkoutSuggestionPage extends StatelessWidget {
+  final DateTime periodStartDate;
+  final int periodLength;
+
+  WorkoutSuggestionPage({required this.periodStartDate, required this.periodLength});
+
+  @override
+  Widget build(BuildContext context) {
+    DateTime today = DateTime.now();
+    int daysSinceStart = today.difference(periodStartDate).inDays;
+
+    String suggestion = _getWorkoutSuggestion(daysSinceStart, periodLength);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sugestões de Treino'),
+        backgroundColor: Color(0xFFD81B60),
+      ),
+      body: Center(
+        child: Text(
+          suggestion,
+          style: TextStyle(fontSize: 24),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  String _getWorkoutSuggestion(int daysSinceStart, int periodLength) {
+    if (daysSinceStart < 0) return "Período não definido ainda.";
+    int phase = (daysSinceStart % (28)); // Ciclo típico de 28 dias
+
+    if (phase < periodLength) {
+      return "Atividades leves (yoga, caminhada).";
+    } else if (phase < 14) {
+      return "Treinos de força com carga aumentada.";
+    } else if (phase < 16) {
+      return "Máxima intensidade (HIIT, treinos explosivos).";
+    } else {
+      return "Atividades moderadas e recuperação.";
+    }
+  }
+}
+
+
+
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -137,6 +185,23 @@ class _HomePageState extends State<HomePage> {
               child: Text('Definir Período Menstrual'),
               
             ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => WorkoutSuggestionPage(
+                    periodStartDate: _periodStartDate,
+                    periodLength: _periodLength,
+                  )),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFD81B60),
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+              ),
+              child: Text('Ver Sugestões de Treino'),
+            ),
+
             SizedBox(height: 20),
             TableCalendar(
               focusedDay: _selectedDate,
