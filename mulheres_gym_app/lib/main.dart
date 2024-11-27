@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MaterialApp(
     home: LoginPage(),
   ));
@@ -56,8 +61,8 @@ class LoginPage extends StatelessWidget {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
-                bool isLogged = await _login(
-                    emailController.text, passwordController.text);
+                bool isLogged =
+                    await _login(emailController.text, passwordController.text);
                 if (isLogged) {
                   Navigator.pushReplacement(
                     context,
@@ -99,8 +104,17 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Future<bool> _login(String user, String password) async {
-    return user == '1' && password == '1';
+  Future<bool> _login(String email, String password) async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return true; // Login bem-sucedido
+    } catch (e) {
+      print('Erro no login: $e');
+      return false; // Falha no login
+    }
   }
 }
 
@@ -108,7 +122,8 @@ class WorkoutSuggestionPage extends StatelessWidget {
   final DateTime periodStartDate;
   final int periodLength;
 
-  WorkoutSuggestionPage({required this.periodStartDate, required this.periodLength});
+  WorkoutSuggestionPage(
+      {required this.periodStartDate, required this.periodLength});
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +131,9 @@ class WorkoutSuggestionPage extends StatelessWidget {
     int daysSinceStart = today.difference(periodStartDate).inDays;
 
     String suggestion = _getWorkoutSuggestion(daysSinceStart, periodLength);
-    String cycleDay = (daysSinceStart >= 0) ? 'Dia do Ciclo: ${daysSinceStart % 28}' : 'Ciclo não definido.';
+    String cycleDay = (daysSinceStart >= 0)
+        ? 'Dia do Ciclo: ${daysSinceStart % 28}'
+        : 'Ciclo não definido.';
     String phase = _getPhase(daysSinceStart, periodLength);
 
     return Scaffold(
@@ -290,10 +307,11 @@ class _HomePageState extends State<HomePage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => WorkoutSuggestionPage(
-                          periodStartDate: _periodStartDate,
-                          periodLength: _periodLength,
-                        )),
+                        MaterialPageRoute(
+                            builder: (context) => WorkoutSuggestionPage(
+                                  periodStartDate: _periodStartDate,
+                                  periodLength: _periodLength,
+                                )),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -338,7 +356,8 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) {
         DateTime startDate = DateTime.now();
-        int length = _periodLength;  // Usar o valor atual de _periodLength como padrão
+        int length =
+            _periodLength; // Usar o valor atual de _periodLength como padrão
 
         return AlertDialog(
           title: Text('Defina seu período menstrual'),
@@ -351,7 +370,8 @@ class _HomePageState extends State<HomePage> {
                 onChanged: (value) {
                   if (value.isNotEmpty) {
                     int day = int.parse(value);
-                    startDate = DateTime(DateTime.now().year, DateTime.now().month, day);
+                    startDate = DateTime(
+                        DateTime.now().year, DateTime.now().month, day);
                   }
                 },
               ),
@@ -360,7 +380,8 @@ class _HomePageState extends State<HomePage> {
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
                   if (value.isNotEmpty) {
-                    length = int.parse(value);  // Atualiza o valor de length com a entrada do usuário
+                    length = int.parse(
+                        value); // Atualiza o valor de length com a entrada do usuário
                   }
                 },
               ),
@@ -389,15 +410,23 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
+  void _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+  }
 }
 
 class RegisterPage extends StatelessWidget {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
-    TextEditingController nameController = TextEditingController();
-    TextEditingController emailController = TextEditingController();
-    TextEditingController passwordController = TextEditingController();
-
     return Scaffold(
       backgroundColor: Color(0xFFFCE4EC),
       appBar: AppBar(
@@ -457,7 +486,12 @@ class RegisterPage extends StatelessWidget {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // Lógica de registro aqui
+                _register(
+                  nameController.text,
+                  emailController.text,
+                  passwordController.text,
+                  context, // Adicione o contexto
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFFD81B60),
@@ -475,4 +509,45 @@ class RegisterPage extends StatelessWidget {
       ),
     );
   }
+
+  void _register(
+      String name, String email, String password, BuildContext context) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Armazenar informações adicionais no Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .set({
+        'name': name,
+        'email': email,
+        'createdAt': DateTime.now(),
+      });
+
+      print('Usuário registrado com sucesso!');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
+    } catch (e) {
+      print('Erro no registro: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao registrar usuário')),
+      );
+    }
+  }
+}
+
+Future<Map<String, dynamic>> _getUserData() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    DocumentSnapshot userData = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    return userData.data() as Map<String, dynamic>;
+  }
+  return {};
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "709043410744",
+    "project_id": "appciclofit",
+    "storage_bucket": "appciclofit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:709043410744:android:8da5ce8156521c6bbc93cd",
+        "android_client_info": {
+          "package_name": "com.ciclofit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoXeMvTbTESxnRn-J2I6ocEJWw_TEf57A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

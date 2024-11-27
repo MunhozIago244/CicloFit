@@ -6,13 +6,19 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
     project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
+}
+
+// Configuração do plugin de serviços do Google para ser aplicado em nível de módulo
+buildscript {
+    dependencies {
+        classpath 'com.google.gms:google-services:4.3.15' // Garanta compatibilidade aqui
+    }
 }
